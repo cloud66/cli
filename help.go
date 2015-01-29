@@ -53,7 +53,7 @@ USAGE:
    {{.Name}} command{{if .Flags}} [command options]{{end}} [arguments...]
 
 COMMANDS:
-   {{range .Commands}}{{.Name}}{{with .ShortName}}, {{.}}{{end}}{{ "\t" }}{{.Usage}}
+   {{range .Subcommands}}{{.Name}}{{with .ShortName}}, {{.}}{{end}}{{ "\t" }}{{.Usage}}
    {{end}}{{if .Flags}}
 OPTIONS:
    {{range .Flags}}{{.}}
@@ -111,19 +111,68 @@ func DefaultAppComplete(c *Context) {
 }
 
 // Prints help for the given command
-func ShowCommandHelp(c *Context, command string) {
-	for _, c := range c.App.Commands {
+func ShowCommandHelp(ctx *Context, command string) {
+	for _, c := range ctx.App.Commands {
 		if c.HasName(command) {
-			HelpPrinter(CommandHelpTemplate, c)
+			if len(c.Subcommands) == 0 {
+				HelpPrinter(CommandHelpTemplate, c)
+			} else {
+				ShowSubCommandHelpByCommand(ctx, &c, ctx.Args())
+			}
 			return
 		}
 	}
 
-	if c.App.CommandNotFound != nil {
-		c.App.CommandNotFound(c, command)
+	if ctx.App.CommandNotFound != nil {
+		ctx.App.CommandNotFound(ctx, command)
 	} else {
-		fmt.Fprintf(c.App.Writer, "No help topic for '%v'\n", command)
+		fmt.Fprintf(ctx.App.Writer, "No help topic for '%v'\n", command)
 	}
+}
+
+func ShowSubCommandHelpByCommand(ctx *Context, command *Command, args Args) {
+	// if the there is no command, then find the command in the app first
+	lookFor := args.First()
+	if lookFor == "" {
+		// nothing to look for, print app help
+		HelpPrinter(AppHelpTemplate, ctx.App)
+		return
+	}
+
+	if command == nil {
+		for _, c := range ctx.App.Commands {
+			if c.HasName(lookFor) {
+				// found the command
+				command = &c
+				break
+			}
+		}
+	}
+
+	// there is a command
+	if len(args) == 1 {
+		// nothing to look for further, print this one
+		HelpPrinter(SubcommandHelpTemplate, command)
+		return
+	} else {
+		// there is more. move to the next
+		args = Args(args.Tail())
+		lookFor = args.First()
+		for _, c := range command.Subcommands {
+			if c.HasName(lookFor) {
+				ShowSubCommandHelpByCommand(ctx, &c, args)
+				return
+			}
+		}
+	}
+
+	if ctx.App.CommandNotFound != nil {
+		ctx.App.CommandNotFound(ctx, command.Name)
+	} else {
+		fmt.Fprintf(ctx.App.Writer, "No help topic for '%v'\n", command)
+	}
+
+	return
 }
 
 // Prints help for the given subcommand
