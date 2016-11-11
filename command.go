@@ -34,9 +34,7 @@ type Command struct {
 	// It is run even if Action() panics
 	After AfterFunc
 	// The function to call when this command is invoked
-	Action interface{}
-	// TODO: replace `Action: interface{}` with `Action: ActionFunc` once some kind
-	// of deprecation period has passed, maybe?
+	Action ActionFunc
 
 	// Execute this function if a usage error occurs.
 	OnUsageError OnUsageErrorFunc

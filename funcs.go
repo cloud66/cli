@@ -14,9 +14,6 @@ type AfterFunc func(*Context) error
 // ActionFunc is the action to execute when no subcommands are specified
 type ActionFunc func(*Context) error
 
-// OldActionFunc is the now deprecated ActionFunc. This is used for casting
-type OldActionFunc func(*Context)
-
 // CommandNotFoundFunc is executed if the proper command cannot be found
 type CommandNotFoundFunc func(*Context, string)
 
